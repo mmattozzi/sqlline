@@ -26,6 +26,12 @@ public class OutputFile implements AutoCloseable {
   final PrintWriter out;
 
   public OutputFile(String filename) throws IOException {
+    if (filename.startsWith("~" + File.separator)) {
+      String homedir = System.getProperty("user.home");
+      if (homedir != null) {
+        filename = homedir + filename.substring(1);
+      }
+    }
     file = new File(filename);
     out = new PrintWriter(
         new OutputStreamWriter(
