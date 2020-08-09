@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.sun.rowset.CachedRowSetImpl;
 import org.jline.reader.History;
 import org.jline.reader.MaskingCallback;
 import org.jline.reader.Parser;
@@ -30,6 +31,8 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+
+import javax.sql.rowset.CachedRowSet;
 
 import static sqlline.SqlLine.rpad;
 
@@ -1000,7 +1003,7 @@ public class Commands {
         continue;
       }
       final String sql = skipLast(flush(sql2execute));
-      executeSingleQuery(sql, call, callback);
+      executeSingleQuery(sql, call, callback, null);
     }
     if (!callback.isFailure()) {
       callback.setToSuccess();
@@ -1020,7 +1023,7 @@ public class Commands {
   }
 
   private void executeSingleQuery(String sql, boolean call,
-      DispatchCallback callback) {
+      DispatchCallback callback, SingleQueryOutputCollector singleQueryOutputCollector) {
     // batch statements?
     if (sqlLine.getBatch() != null) {
       sqlLine.getBatch().add(sql);
@@ -1060,7 +1063,16 @@ public class Commands {
         if (hasResults) {
           do {
             try (ResultSet rs = stmnt.getResultSet()) {
-              int count = sqlLine.print(rs, callback);
+              int count = 0;
+              if (singleQueryOutputCollector != null) {
+                CachedRowSet cachedRowSet = new EnhancedCacheResultSet();
+                cachedRowSet.populate(rs);
+                singleQueryOutputCollector.addResultSet(cachedRowSet);
+                cachedRowSet.first();
+                count = sqlLine.print(cachedRowSet, callback);
+              } else {
+                count = sqlLine.print(rs, callback);
+              }
               long end = System.currentTimeMillis();
 
               reportResult(sqlLine.loc("rows-selected", count), start, end);
@@ -1075,6 +1087,9 @@ public class Commands {
         if (stmnt != null) {
           sqlLine.showWarnings(stmnt.getWarnings());
           stmnt.close();
+          if (singleQueryOutputCollector != null) {
+            singleQueryOutputCollector.close();
+          }
         }
       }
     } catch (UserInterruptException uie) {
@@ -1661,6 +1676,14 @@ public class Commands {
     } else {
       stopRecording(line, callback);
     }
+  }
+
+  public void xls(String line, DispatchCallback callback) {
+    String query = line.substring(4);
+    SingleQueryOutputCollector xlsSingleQueryDispatchQueryCollector =
+            new XlsSingleQueryOutputCollector(new File("test.xls"));
+    sqlLine.output("Executing query: " + query);
+    executeSingleQuery(query, true, callback, xlsSingleQueryDispatchQueryCollector);
   }
 
   public void commandhandler(String line, DispatchCallback callback) {
