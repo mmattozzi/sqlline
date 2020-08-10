@@ -12,15 +12,25 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class XlsSingleQueryOutputCollector extends SingleQueryOutputCollector {
+
+
+    public static final int DEFAULT_COL_WIDTH = 12;
+    public static final int XLS_CHAR_PIXEL_WIDTH = 256;
+
+    /** Maximum width of a column in characters (roughly). POI allows no higher than 255. */
+    public static final int MAX_COL_WIDTH = 255;
 
     protected File fileOutput;
     protected HSSFSheet xlsSheet;
     protected HSSFWorkbook xlsWorkbook;
-    protected short rowIndex = 0;
+    protected int rowIndex = 0;
     protected List<String> colNames = null;
+    protected Map<Integer, Integer> colMaxWidths = new HashMap<>();
 
     public XlsSingleQueryOutputCollector(File fileOutput) {
         this.fileOutput = fileOutput;
@@ -42,19 +52,29 @@ public class XlsSingleQueryOutputCollector extends SingleQueryOutputCollector {
 
             for (int i = 1; i <= colInfo.getColumnCount(); i++) {
                 colNames.add(colInfo.getColumnName(i));
-                titleRow.createCell((short) (i - 1)).setCellValue(
+                titleRow.createCell((i - 1)).setCellValue(
                         new HSSFRichTextString(colInfo.getColumnName(i)));
-                xlsSheet.setColumnWidth((short) (i - 1), (short) 4000);
+                xlsSheet.setColumnWidth((i - 1), DEFAULT_COL_WIDTH * XLS_CHAR_PIXEL_WIDTH);
+                colMaxWidths.put(i-1, 12);
             }
         }
 
         // Save all the data from the database table rows
         while (rs.next()) {
             HSSFRow dataRow = xlsSheet.createRow(rowIndex++);
-            short colIndex = 0;
+            int colIndex = 0;
             for (String colName : colNames) {
-                dataRow.createCell(colIndex++).setCellValue(
-                        new HSSFRichTextString(rs.getString(colName)));
+                String value = rs.getString(colName);
+                dataRow.createCell(colIndex).setCellValue(
+                        new HSSFRichTextString(value));
+                if (colMaxWidths.get(colIndex) < value.length()) {
+                    if (value.length() < 254) {
+                        xlsSheet.setColumnWidth(colIndex, (value.length() + 1)  * XLS_CHAR_PIXEL_WIDTH);
+                    } else {
+                        xlsSheet.setColumnWidth(colIndex, MAX_COL_WIDTH * XLS_CHAR_PIXEL_WIDTH);
+                    }
+                }
+                colIndex++;
             }
         }
 

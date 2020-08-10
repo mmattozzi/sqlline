@@ -1680,6 +1680,9 @@ public class Commands {
 
   public void xls(String line, DispatchCallback callback) {
     String query = line.substring(4);
+    if (query.endsWith(";")) {
+      query = query.substring(0, query.length() - 1);
+    }
     SingleQueryOutputCollector xlsSingleQueryDispatchQueryCollector =
             new XlsSingleQueryOutputCollector(new File("test.xls"));
     sqlLine.output("Executing query: " + query);
