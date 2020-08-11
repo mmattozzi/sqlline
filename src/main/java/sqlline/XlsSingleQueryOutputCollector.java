@@ -67,11 +67,15 @@ public class XlsSingleQueryOutputCollector extends SingleQueryOutputCollector {
                 String value = rs.getString(colName);
                 dataRow.createCell(colIndex).setCellValue(
                         new HSSFRichTextString(value));
-                if (colMaxWidths.get(colIndex) < value.length()) {
+                if (value != null && colMaxWidths.get(colIndex) < value.length()) {
                     if (value.length() < 254) {
-                        xlsSheet.setColumnWidth(colIndex, (value.length() + 1)  * XLS_CHAR_PIXEL_WIDTH);
+                        int width = (value.length() + 1)  * XLS_CHAR_PIXEL_WIDTH;
+                        xlsSheet.setColumnWidth(colIndex, width);
+                        colMaxWidths.put(colIndex, width);
                     } else {
-                        xlsSheet.setColumnWidth(colIndex, MAX_COL_WIDTH * XLS_CHAR_PIXEL_WIDTH);
+                        int width = MAX_COL_WIDTH * XLS_CHAR_PIXEL_WIDTH;
+                        xlsSheet.setColumnWidth(colIndex, width);
+                        colMaxWidths.put(colIndex, width);
                     }
                 }
                 colIndex++;
