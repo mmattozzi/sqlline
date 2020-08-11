@@ -1683,9 +1683,27 @@ public class Commands {
     if (query.endsWith(";")) {
       query = query.substring(0, query.length() - 1);
     }
+
+    String filename = null;
+
+    if (query.charAt(0) == '"') {
+      int nextQuote = query.indexOf('"', 1);
+      filename = query.substring(1, nextQuote);
+      query = query.substring(nextQuote + 2);
+    } else if (query.charAt(0) == '\'') {
+      int nextQuote = query.indexOf('\'', 1);
+      filename = query.substring(1, nextQuote);
+      query = query.substring(nextQuote + 2);
+    } else {
+      int nextSpace = query.indexOf(' ', 1);
+      filename = query.substring(0, nextSpace);
+      query = query.substring(nextSpace + 1);
+    }
+
     SingleQueryOutputCollector xlsSingleQueryDispatchQueryCollector =
-            new XlsSingleQueryOutputCollector(new File("test.xls"));
+            new XlsSingleQueryOutputCollector(new File(filename));
     sqlLine.output("Executing query: " + query);
+    sqlLine.output("Writing xls file: " + filename);
     executeSingleQuery(query, true, callback, xlsSingleQueryDispatchQueryCollector);
   }
 
