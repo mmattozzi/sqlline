@@ -438,6 +438,20 @@ public class Commands {
     metadata("getTables", args, callback);
   }
 
+  public void showtables(String line, DispatchCallback callback)
+      throws SQLException {
+    // String[] strings = {sqlLine.getConnection().getCatalog(), null, "%"};
+    // List<Object> args = buildMetadataArgs(line, "table name", strings);
+    // args.add(null);
+
+    String query = line.substring(11);
+    if (query.endsWith(";")) {
+      query = query.substring(0, query.length() - 1);
+    }
+
+    metadata("getTables", Arrays.asList(null, query, null, null), callback);
+  }
+
   public void schemas(String line, DispatchCallback callback) {
     metadata("getSchemas", Collections.emptyList(), callback);
   }
